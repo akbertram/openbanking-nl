@@ -111,7 +111,7 @@ var formatDate = function(time) {
     var year = time.substring(0, 4);
     var month = time.substring(4, 6);
     var day = time.substring(6, 8);
-    return day + "/" + month + "/" + year;
+    return [year, month, day].join('-');
 }
 
 var formatAmount = function(af, bij) {
