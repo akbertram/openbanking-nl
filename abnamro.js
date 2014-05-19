@@ -3,7 +3,7 @@ var casperOptions = {
     viewportSize: {width: 1024, height: 768},
     verbose: "true",
     logLevel: "debug",
-    timeout: 60000,
+    timeout: 90000,
     onTimeout: function() {
         this.echo("Timed out. Take a look at abnamro-timeout.png to see what went wrong.", "ERROR");
         this.capture("abnamro-timeout.png");
@@ -84,15 +84,18 @@ casper.then(function() {
 
 // Finally scrape the transaction list
 casper.then(function() {
-    this.waitUntil('tr.mcf-row-mutations', function() {
+    this.log("Waiting for mutations to load...");
+    this.waitUntil('.mcf-row-mutations', function() {
+        this.capture("abnamro-tx.png");
+        fs.write("dump.html",this.getHTML());
         var asText = function(info) { return info.text; }
         var asHtml = function(info) { return info.html; }
-        var rows = this.getElementsInfo('tr.mcf-row-mutations');
-        var dates = this.getElementsInfo('tr.mcf-row-mutations .mcf-col-date').map(asText);
-        var counterparty = this.getElementsInfo('tr.mcf-row-mutations .mcf-mutationcontraacoountname').map(asText);
-        var details = this.getElementsInfo('tr.mcf-row-mutations .mcf-mutationdetail').map(asHtml);
-        var af = this.getElementsInfo('tr.mcf-row-mutations .mcf-col-amountmin').map(asText);
-        var bij = this.getElementsInfo('tr.mcf-row-mutations .mcf-col-amountplus').map(asText);
+        var rows = this.getElementsInfo('.mcf-row-mutations');
+        var dates = this.getElementsInfo('.mcf-row-mutations .mcf-col-date').map(asText);
+        var counterparty = this.getElementsInfo('.mcf-mutationcontraaccountname').map(asText);
+        var details = this.getElementsInfo('.mcf-row-mutations .mcf-mutationdetail-description').map(asHtml);
+        var af = this.getElementsInfo('.mcf-row-mutations .mcf-col-amountmin').map(asText);
+        var bij = this.getElementsInfo('.mcf-row-mutations .mcf-col-amountplus').map(asText);
 
         var results = [];
         for(var i in dates) {
@@ -135,14 +138,13 @@ var formatAmount = function(af, bij) {
 var parseDetails = function(details) {
 
     var keys = {};
-    var typeStart = details.indexOf('<span');
-    if(typeStart != -1) {
-        keys.tl = details.substring(typeStart).replace(/<.+?>/g, '').trim();
-        details = details.substring(0, typeStart).trim();
-    }
-
     if(details.match(/GEA\s*NR/)) {
        return parseGeaDetails(details, keys.tl);
+    }
+    
+    var divStart = details.indexOf('<div');
+    if(divStart != -1) {
+       details = details.substring(0, divStart);
     }
 
     var lines = details.split(/<br>/);
